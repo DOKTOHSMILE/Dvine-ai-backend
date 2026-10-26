@@ -37,3 +37,27 @@ Event:
 WebSocket `/ws/tasks`: first text frame `{"op":"auth","token":"..."}`, then `{"op":"subscribe","taskId":"...","after":0}`. Unauthenticated sockets are closed. The token is not logged.
 
 Task states, in order: RECEIVED, AUTHORIZED, UNDERSTOOD, PLAN_CREATED, POLICY_CHECK, QUEUED, EXECUTING, VERIFYING, COMPLETED.
+
+## Offline knowledge and learning (Track M ↔ Track S)
+
+Planned in `DVINE_MASTER_BUILD_HANDBOOK.md` §5–§7. The Android client already calls these when `api_base` is set; until the server has them, the phone keeps its bundled pack and holds learning locally.
+
+`GET /api/v1/knowledge/manifest` (no user data, may be public):
+
+```
+{ "version": 2, "sha256": "<64 hex of the pack body>", "size": 25898, "url": "/api/v1/knowledge/pack/2" }
+```
+
+`GET /api/v1/knowledge/pack/{version}` returns the pack JSON (schema in handbook §7). The phone installs it only if `version` is newer and the sha256 matches.
+
+`POST /api/v1/learning/sync` (authenticated; the user comes from the session, never the body):
+
+```
+{ "schemaVersion": 1, "deviceId": "uuid",
+  "entries": [ { "id": "uuid", "kind": "TAUGHT_FACT|CORRECTION|UNANSWERED|FEEDBACK",
+                 "text": "my city", "answer": "Sapele", "createdAt": 1793007000000 } ] }
+```
+
+Response `{ "accepted": ["id", ...], "rejected": [ { "id": "...", "reason": "..." } ] }`. Repeated ids are accepted again without duplicating rows. Entries land owner-scoped in a review queue (`PENDING`); nothing is promoted into a shared pack without review and de-identification. Personal facts stay in that user's private memory.
+
+Offline wording the server may reuse when its own store is unreachable: "I'm unable to connect to my database to get more information. Please connect to the internet and ask me again."
