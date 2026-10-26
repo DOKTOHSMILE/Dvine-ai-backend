@@ -381,3 +381,22 @@ The black space around the face is a drawing canvas. When a drawing helps, the f
 7. Voices (en-NG preference) + AmbientPad.
 8. Shard merging in KnowledgeStore.
 9. Build, tests, previews, BUILD_STATUS.
+
+
+## 19. Basic knowledge, self-learning and inner thoughts (v1.2, built)
+
+**Basic knowledge (offline):**
+- Core pack v2 (`assets/knowledge/base_knowledge.json`, ~43 KB): 21 intents (including Pidgin greetings), 142 facts (Nigeria and Africa, world, science, health and first aid, maths formulas, money basics, Bible), 74 core words (with Pidgin, Yoruba, Igbo and Hausa words), 45 scripture and wisdom lines, each with its reference.
+- English dictionary shard (`assets/knowledge/shards/dictionary_en.json`, ~3.2 MB): 20,775 common words from WordNet 3.1 with part of speech, meaning, example and synonyms. Built by `tools/make_dictionary.py`; licence in `WORDNET_LICENSE.txt`. The core pack loads instantly; the dictionary loads in the background.
+- The rest of WordNet (~150k lemmas) and other libraries go in the downloadable shards (§15).
+
+**Fluid search (nearest meaning):** if the exact words find nothing, the brain stems the words (biggest → big) and tries their dictionary synonyms both ways (big → large → "largest planet"), saying so softly first.
+
+**Self-learning (on the phone, reviewed before sharing):**
+- "Remember that my sister is Ada" (personal) and "remember that the speed limit in town is 50" (general).
+- When it can't answer, it saves the question; "the answer is …" right after teaches it.
+- "No, it's …" corrects any answer, and learned answers win over the pack next time.
+- "What have you learned" lists the latest; "forget that" and "forget everything" delete.
+- Secrets are never stored; upload only after "share what you learned" (§5 S-L).
+
+**Inner thoughts:** before answering, the persona thinks aloud in a softer, lower, slower voice ("Let me check my dictionary.", "Let me look through what I know.", "That exact wording isn't in my notes. Let me try words that mean the same."). The face shows THINKING and the subtitle starts with "…". "Stop thinking aloud" and "think aloud" toggle it.
