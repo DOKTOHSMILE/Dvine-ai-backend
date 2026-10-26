@@ -10,7 +10,9 @@
 
 Evidence, 2026-10-25: `mvn test` — TaskIsolationTest 9, BootstrapClosedTest 1, 0 failures. H2, not a device, not a live model.
 
-Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
+Not in this commit: memory, pgvector, social, wallet.
+
+| Linux workspace + internet | VERIFIED (tests) / engine pending | `ai.dvine.workspace` (Docker runner, locked down; runs, files, quotas, rate limit), `ai.dvine.web` (egress proxy with allow-list and private-address refusal, web fetch); `WorkspaceTest` (5) | run `sandbox/` with a container engine on the deployed server |
 
 
 ## S-K / S-L (Track S)

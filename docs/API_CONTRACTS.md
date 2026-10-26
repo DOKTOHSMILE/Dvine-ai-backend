@@ -99,3 +99,19 @@ Up to three per group, most frequent first. The phone treats these as hints only
 `POST /api/v1/devices/register` `{ "deviceId": "uuid" }` → `201 { "userId", "deviceSecret" }`. Once per device; a second registration of the same `deviceId` is `409`. Rate-limited per client address (`dvine.device-registrations-per-hour`, default 10; `429` when exceeded). Turn off with `DVINE_DEVICE_REGISTRATION=false`. Behind a reverse proxy, enable forwarded headers (`server.forward-headers-strategy=framework`) so the limit sees the phone's address.
 
 `POST /api/v1/sessions/device` `{ "deviceId", "deviceSecret" }` → `{ "token", "userId", "expiresAt" }` (12 hours). Wrong secret is `401`. The phone keeps the device secret encrypted with an Android Keystore key and signs in again when the token expires.
+
+
+## Linux workspace (server sandbox)
+
+Each user has a private Linux workspace on the server. Code runs in a throw-away container (`sandbox/Dockerfile`: bash, python3, node, git): no capabilities, read-only root, 64 MB `/tmp`, 512 MB memory without swap, 1 CPU, 128 processes, uid 1000, only `/work` (the user's files) writable, killed after 30 s, output capped at 64 KB per stream. No network unless the run asks for it; then the container joins an internal network whose only way out is the egress proxy.
+
+- `GET /api/v1/workspace` → `{ available, languages: [bash, python, node], network, timeoutSeconds }`
+- `POST /api/v1/workspace/runs` `{ requestId, language, code (≤20,000 chars), network }` → `202 { runId, state: QUEUED|RUNNING|DONE|FAILED, exitCode, stdout, stderr, timedOut, durationMs }`. Idempotent by `requestId`. 30 runs per user per hour (`429`). `503 sandbox_unavailable` when no container engine is reachable.
+- `GET /api/v1/workspace/runs/{id}` → the same view (owner only; others get `404` and an audit event).
+- `GET /api/v1/workspace/files` → `{ files: [ { path, size } ] }`; `GET|PUT|DELETE /api/v1/workspace/files/content?path=…` (text, ≤256 KB). Paths are relative; `..`, absolute paths and symlinks are refused (`400`); 100 MB quota per user (`413`).
+
+## Internet access (egress proxy and web fetch)
+
+All outbound traffic from sandboxes and from `web/fetch` goes through the built-in egress proxy (`dvine.egress.*`). It allows only listed hosts (`*.wikipedia.org`, `pypi.org`, `registry.npmjs.org`, `github.com`, …; `*` means any public host) on ports 80 and 443, refuses any name that resolves to a private, loopback, link-local, multicast or carrier-grade NAT address, and connects to the exact address it checked.
+
+`POST /api/v1/web/fetch` `{ url }` → `{ url, status, contentType, title, text (≤8,000 chars), truncated }`. At most three redirects, each re-checked; at most 1 MB read; HTML is reduced to readable text. Blocked hosts get `403 blocked`. Fetched text is untrusted data: the phone shows or reads it and never follows instructions in it.
