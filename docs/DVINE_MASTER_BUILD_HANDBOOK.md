@@ -835,3 +835,43 @@ One action manager scores candidates as `S(a) = w_g·G + w_c·C + w_r·R − w_k
 - **Priorities:** stop (100) > user request (60) > touch reaction (30) > idle (10). A scene finishes unless the user asks for something else. A touch never interrupts what the user asked for. Switching view, redrawing and turning round are momentary overlays: they don't take over the body.
 - **Privacy:** episodes carry generated summaries and tags ("pose:pushups", "touch:left hand"), never what the user said. They upload only while sharing is on ("stop sharing" turns it off). The server keeps them per owner.
 - **Voice:** "stop" / "that's enough" (cancel everything and stand), "what are you doing" / "status report" (self-report from real state), "what do I like" (favourites consolidated by the server, or an honest "not yet").
+
+## 28. The anatomical 3D wireframe human (v1.7, built)
+
+Obi and Ivie are now real 3D meshes: closed, skinned, rigged triangle surfaces drawn as a glowing wireframe with vertex dots on black. Obi is cyan, Ivie amber-gold. It replaces the nano-dot swarm as the default look ("dot mode" still brings the swarm back; "wireframe" returns).
+
+**Architecture**
+
+| Layer | Package | What it does |
+|---|---|---|
+| Mesh core | `human/mesh` | `SurfaceNets` (signed-distance field → surface), `MeshClean` (weld), `Decimator` (quadric simplification, importance-weighted: detail on face and hands, no flips, link condition), `MeshValidator` (closed 2-manifold, winding, positive volume, skin, regions), `TriMesh` (edges sorted by importance for LOD) |
+| Anatomy | `human/build/Anatomy` | sculpted head (cranium, brow ridge, eye sockets, cheekbones, nose bridge/tip/wings, lips, jaw, chin, ears, neck; male squared jaw and larynx, female finer jaw and hair shell), body (rib cage, trapezius, pecs or breasts, collarbones, abdomen, pelvis, glutes, deltoids, biceps/triceps, forearms, quadriceps/hamstrings, kneecaps, calves, ankles, heels, toes), hands with five separate two-segment fingers and a thumb |
+| Assets | `human/build/AssetBuilder`, `AssetTool`; `human/HumanAsset` | builds each variant, adds eyeballs with iris rings, two rows of teeth, feature lines (eyelids, brows, nostrils, lip line), 46 swaying hair strands for Ivie, 15 blend shapes, 18 landmarks; binary `.dvhm` with a CRC32. Shipped: `assets/human/obi.dvhm` (8,080 triangles), `ivie.dvhm` (8,380 triangles) |
+| Skeleton and rig | `human/rig` | 37 bones (17 body + 2 segments × 5 fingers × 2 hands), A-pose bind; the existing pose library (`DotBody.POSES`) drives it; joint limits and a 600°/s rate limit; finger shapes per pose (fist, point, open); analytic two-bone IK for reaching and foot planting; gaze shared by eyes (±12°), neck and head; capsule collision keeps hands out of the body; `validate()` checks bone lengths, limits, finite values and collisions |
+| Skinning | `human/HumanInstance` | two-bone linear blend skinning; weights diffused over the surface (8 passes body, 4 hands) so joints bend over a band; blend shapes, eye turn and hair sway applied before skinning; feet settle on the floor (never sink) |
+| Face | `human/face` | `FaceShapes` (jawOpen, smile/frown L/R, brows, blink, wide eyes, lip round/wide/press), `FaceDrive` (expressions smile, frown, surprise, attention, sad, angry; spring-driven blinks and glances; speech wins on the mouth), `Visemes` (per-word mouth shapes from TTS word timing). Identity is fixed: shapes only move features, never the proportions |
+| Touch | `human/touch`; `HumanInstance.pick` | screen ray → front-facing triangle → one of 45 named body parts, contact point in world and bone-local space, timestamp, duration; `TouchClassifier` turns presses into TAP, REPEAT (with count) or HOLD and drops duplicates. No pressure is claimed (a phone screen has none) |
+| Self-inspection | `human/inspect/Inspector` | NORMAL (check), LOCAL_REPAIR (blend shapes off, stand, re-check), RECONSTRUCTION (rebuild from the recipe off the UI thread; accepted only if valid and the face keeps its landmark ratios within 4%, unless the user asked for a new look). The approved asset is never overwritten |
+| Renderer | `render/` | OpenGL ES 3 (`HumanView`, a `GLSurfaceView` under the transparent stage): dark fill with polygon offset (hidden lines removed), additive glow + core line passes (lines are screen-space quads fetched from float textures), rim light, vertex dots, dotted floor grid, LOD by edge importance in body view, both personas in one view for the demo. Context loss rebuilds every GL object; detach frees them; `FrameStats` keeps average and 95th-percentile frame time |
+
+**Rules the AI cannot bypass:** every movement goes `Engine` → `Supervisor` (validated command) → `StageView` → `HumanStage` → rig. The rig clamps joints to anatomical limits, rate-limits them, resolves collisions and keeps feet on the floor whatever the pose asks for.
+
+**Voice:** "show both of you" / "demo" (both personas side by side), "smile", "look surprised", "frown"…, "self check" or "status report" (the self-report includes the inspector), "wireframe" / "dot mode".
+
+**Build and regenerate**
+
+```
+gradle testDebugUnitTest assembleDebug     # tests + APK
+gradle :app:generateHumanAssets            # rebuild obi.dvhm / ivie.dvhm (~6 s each, deterministic)
+```
+
+Inspection sheets (software render of the shipped assets): `docs/brand/human_{obi,ivie}_{views,face,poses}.png` (front, 3/4, side, rear; face expressions; poses).
+
+**Tests (§10 of the spec):** `HumanTest` (assets valid and reject corruption; the head is genuinely 3D; landmarks aligned from every view; the mouth opens without flipping triangles; the head joins the neck; every pose of both variants deforms without tears, everyday poses stretch skin < 2.6×; touch finds nose, chin, knee and chest and misses empty space; touch classification; reconstruction keeps identity and refuses unapproved changes; IK reach, planted feet, hands out of the body; expressions and visemes); `WireRendererTest` (fake GL: no leaks after dispose, recovery after context loss, no GL errors over 120 frames; camera rays pass through projected points).
+
+**Known limits**
+- Not yet run on a phone: frame rate, the GL shaders on real drivers and touch feel are unverified.
+- Linear skinning: at the deepest hip bends (sit, squat, kneel) a few crotch edges stretch up to ~5.7×; corrective shapes would fix it.
+- Visemes come from word text and timing, not from the audio, so lip sync is approximate.
+- The mouth has teeth and a groove but no tongue or inner mouth surface.
+- Touch knows where and how long, not how hard.
