@@ -355,6 +355,10 @@ The black space around the face is a drawing canvas. When a drawing helps, the f
 - **Voices:** prefer Nigerian English (`en-NG`) voices from the system TTS (Google TTS ships them), else African/British English. Obi takes the deeper voice, Ivie the warmer one. Speech is slow and gentle: Obi rate 0.86 / pitch 0.86, Ivie rate 0.90 / pitch 1.02. A custom neural Nigerian voice (server TTS) is a later upgrade behind the same `TalkBridge`.
 - **Background instrumental:** a soft, slow, low pad synthesised on the phone (`voice/AmbientPad.java`, no audio files), rising gently while they speak and fading in silence. Obi's chord sits lower and darker, Ivie's warmer and brighter. Volume stays far under the voice. "Music off" / "music on" by voice.
 
+## 16b. Skin
+
+Faces and hands wear solid warm brown skin by default (medium tone), lit and depth-sorted, with the persona's glowing wires over it. "Wireframe mode" / "skin mode" switch by voice; the choice is remembered.
+
 ## 17. Magic ✨
 
 - Sparkles drift up around the persona while thinking, burst softly when an answer is ready or a copy/share succeeds.
