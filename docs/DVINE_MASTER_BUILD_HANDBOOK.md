@@ -400,3 +400,12 @@ The black space around the face is a drawing canvas. When a drawing helps, the f
 - Secrets are never stored; upload only after "share what you learned" (§5 S-L).
 
 **Inner thoughts:** before answering, the persona thinks aloud in a softer, lower, slower voice ("Let me check my dictionary.", "Let me look through what I know.", "That exact wording isn't in my notes. Let me try words that mean the same."). The face shows THINKING and the subtitle starts with "…". "Stop thinking aloud" and "think aloud" toggle it.
+
+
+## 20. Facing the user and voice tuning (v1.2.1)
+
+- Both faces rest looking straight at the user; only small living motion (breathing, blinks, a slight sway while thinking) moves the head.
+- Voices: `voice/VoiceTuning.java` ranks offline English voices (Nigerian English first, then other African English, then British, then any) and gives Obi and Ivie **different** voices, matching gender when the engine reports it. Defaults stay close to natural (Obi pitch 0.93, rate 0.90; Ivie pitch 1.04, rate 0.94), because big pitch shifts make TTS sound robotic.
+- Inner-thought voice: same voice as the persona, at 72% volume, about 4% lower and 8% slower.
+- Tune by voice, per persona, saved on the phone: "try a different voice", "speak slower", "speak faster", "deeper voice", "higher voice", "reset your voice" (add "Ivie" or "Obi" to choose who).
+- If the phone has no Nigerian English voice, install it: Settings → System → Languages → Text-to-speech → Google → Install voice data → English (Nigeria).
