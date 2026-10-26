@@ -19,5 +19,6 @@ Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
 |---|---|---|
 | S-K knowledge pack manifest + download | VERIFIED (tests) | `KnowledgeAndLearningTest.manifestMatchesThePackItServes`: sha256 and size match the served bytes; unknown version 404; public GET |
 | S-L learning intake | VERIFIED (tests) | `learningSyncIsAuthenticatedOwnerScopedAndIdempotent`: 401 without a session; secrets and unknown kinds rejected; replay adds no rows; one row per owner; all PENDING; audit event written |
+| S-E episode archive + consolidation | VERIFIED (tests) | `EpisodesTest`: 401 without a session; secrets, unknown kinds and bad tags rejected; replay adds no rows; profile ranks favourites per group; other owners see nothing |
 
 `mvn test`: 13 tests pass.

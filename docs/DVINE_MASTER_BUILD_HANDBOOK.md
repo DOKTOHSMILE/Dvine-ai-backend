@@ -806,3 +806,32 @@ One action manager scores candidates as `S(a) = w_g·G + w_c·C + w_r·R − w_k
 | 10 | Advanced embodiment (sensors) | out of scope for the phone |
 
 - **Final rule:** *the brain decides what an interaction means; body awareness determines what happened; the anatomical controller decides what movement is valid; the visual engine maintains and renders the body; validation confirms the result.* A repair is only "done" once it has been validated against the mesh, skeleton, reference and touch map.
+
+## 27. The on-device engine, and what the server does instead (v1.6, built)
+
+**Rule:** the brain-and-body control engine lives on the phone. Everything DVINE needs to listen, think simply, move, react and stay safe works offline and in real time. The server takes only **secondary** jobs: ones that need the whole history, heavy compute or the internet. Their results flow back as hints the phone may ignore. If the server is gone, DVINE loses nothing it needs in the moment.
+
+| Function (ANBA network) | Where | Code |
+|---|---|---|
+| Hearing, speech-to-text, speaking | phone | `ListenBridge`, `TalkBridge` |
+| Routing and simple reasoning (rules + knowledge pack) | phone | `OfflineBrain` |
+| Executive: validated commands, action selection, one owner per channel, priorities, queues, stale-command expiry, stop | phone | `engine/Supervisor`, `Command`, `Skills` |
+| Motor control, joint limits, floor contact, face rig | phone | `DotBody`, `DotHead`, `FaceRig`, `StageView` (60 Hz) |
+| Behaviour loop | phone, 10 Hz | `Engine.tick` (timed commands, mood drift, expression) |
+| Appraisal and affect (regulated expression bias) | phone | `engine/Affect` → `FaceRig.setMood` |
+| Working memory (7 items, priorities, expiry) | phone | `engine/WorkingMemory` |
+| Embodied state model and self-monitoring ("what are you doing?") | phone | `Engine.state`, `Engine.selfReport` |
+| Touch on the body and reactions | phone | `StageView.partAt` → `Engine.onTouch` |
+| Short episodic buffer (≤300 kept, uploaded ones dropped after 3 days, never the user's words) | phone | `engine/Episodes` |
+| Learning journal (taught facts, corrections, unanswered) | phone, then server | `LearningJournal` → S-L |
+| **Long-term episodic archive** | **server** | `POST /api/v1/episodes/sync` (owner-scoped, idempotent, secrets rejected) |
+| **Memory consolidation into favourites** (poses, scenes, objects, touches, persona; 90 days) | **server** | `GET /api/v1/episodes/profile` → `Engine.applyProfile` ("what do I like?") |
+| **Knowledge pack builds and updates** | **server** | S-K |
+| **Review of shared learning** | **server** | S-L review queue |
+| **Open-ended reasoning with a large model** | **server** (M7) | later |
+| Skill-usage analytics and controlled skill learning | server (later) | from the episode archive |
+
+- **Command path:** brain answer → `Engine.perform` → typed `Command` (action, value, priority, deadline) → `Supervisor` (validate against the skill registry → expire if stale → preempt, queue or reject) → `BodyPort` (the stage) → result reported back (COMPLETED, PREEMPTED, REJECTED with a reason, EXPIRED, CANCELLED). Failures the user asked for become FAILURE episodes and show up in the self-report.
+- **Priorities:** stop (100) > user request (60) > touch reaction (30) > idle (10). A scene finishes unless the user asks for something else. A touch never interrupts what the user asked for. Switching view, redrawing and turning round are momentary overlays: they don't take over the body.
+- **Privacy:** episodes carry generated summaries and tags ("pose:pushups", "touch:left hand"), never what the user said. They upload only while sharing is on ("stop sharing" turns it off). The server keeps them per owner.
+- **Voice:** "stop" / "that's enough" (cancel everything and stand), "what are you doing" / "status report" (self-report from real state), "what do I like" (favourites consolidated by the server, or an honest "not yet").
