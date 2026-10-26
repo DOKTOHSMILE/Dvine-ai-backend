@@ -418,3 +418,17 @@ The black space around the face is a drawing canvas. When a drawing helps, the f
 - Server address: the build's `api_base`, or by voice "connect to server https://…". HTTPS only.
 - "Sync status" says how many items are waiting; a faint "Backed up N things I learned." subtitle confirms each upload.
 - Server side keeps every upload owner-scoped and PENDING review (§5 S-L).
+
+
+## 22. Nano-bot rendering, JARVIS style (v1.3)
+
+Replaces the line, skin and wire looks. **Everything on screen is nano dots.**
+
+- **Swarm** (`face/nano/Swarm.java`): up to 10,000 particles, each springing to a target point from the current *form*. Changing the form makes the dots fly apart and reassemble: switching persona, face ↔ full body, "redraw yourself", new looks.
+- **Forms** (`face/nano/Forms.java`): `Head` (the living procedural head: skin samples, brighter eyes, brows, nose and lips, hair strands; it speaks, blinks and smiles), `Body` (full standing figure: the same head scaled, neck, chest, waist, arms, hands, legs, feet, a small core light; Ivie narrower shoulders, fuller hips), `Drawing` (any sketch, stroke by stroke), `Object3D` (globe, cube, pyramid, torus, DNA, atom, sphere, slowly turning).
+- **Look** (`face/nano/NanoPainter.java`): every dot gets a soft glow pass and a bright core with a faint shimmer, bucketed by brightness and depth.
+- **Scene**: a Blender-like dotted grid floor with red X and green depth axes, and three JARVIS-style rings of dots turning around the face.
+- **Hands** are dots too (points along every bone).
+- Voice: "show your full body", "show your face", "redraw yourself", "draw the globe / a cube / a pyramid / a torus / DNA / an atom / a sphere", and every 2D drawing from §14.
+- Shape requests still work (eyes, nose, lips, jaw, face width and height, hair). Old skin and wireframe requests answer that they are nano dots now.
+- Budget: ~6–9k dots per frame for the persona, up to 4k for a drawing. Frame rate on a mid-range phone is still to be measured (Stage M2 gate).
