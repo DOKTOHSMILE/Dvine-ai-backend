@@ -11,3 +11,13 @@
 Evidence, 2026-10-25: `mvn test` — TaskIsolationTest 9, BootstrapClosedTest 1, 0 failures. H2, not a device, not a live model.
 
 Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
+
+
+## S-K / S-L (Track S)
+
+| Item | Status | Evidence |
+|---|---|---|
+| S-K knowledge pack manifest + download | VERIFIED (tests) | `KnowledgeAndLearningTest.manifestMatchesThePackItServes`: sha256 and size match the served bytes; unknown version 404; public GET |
+| S-L learning intake | VERIFIED (tests) | `learningSyncIsAuthenticatedOwnerScopedAndIdempotent`: 401 without a session; secrets and unknown kinds rejected; replay adds no rows; one row per owner; all PENDING; audit event written |
+
+`mvn test`: 13 tests pass.

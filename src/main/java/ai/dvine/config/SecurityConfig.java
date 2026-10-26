@@ -24,6 +24,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET, "/api/v1/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/sessions").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/knowledge/**").permitAll()
                         .requestMatchers("/ws/tasks").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint((req, res, error) -> {

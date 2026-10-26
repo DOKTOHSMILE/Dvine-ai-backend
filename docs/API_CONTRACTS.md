@@ -40,7 +40,7 @@ Task states, in order: RECEIVED, AUTHORIZED, UNDERSTOOD, PLAN_CREATED, POLICY_CH
 
 ## Offline knowledge and learning (Track M ↔ Track S)
 
-Planned in `DVINE_MASTER_BUILD_HANDBOOK.md` §5–§7. The Android client already calls these when `api_base` is set; until the server has them, the phone keeps its bundled pack and holds learning locally.
+Implemented (`ai.dvine.knowledge`, `ai.dvine.learning`, migration V2). The Android client calls these when `api_base` is set. The served pack is `src/main/resources/knowledge/base_knowledge.json`; copy it from the Android repo (`tools/pack_source.py` output) when the pack version changes.
 
 `GET /api/v1/knowledge/manifest` (no user data, may be public):
 
