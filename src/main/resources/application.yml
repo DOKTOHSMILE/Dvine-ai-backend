@@ -20,6 +20,8 @@ dvine:
   # phones register themselves (no secret in the app); rate-limited per address
   device-registration-enabled: ${DVINE_DEVICE_REGISTRATION:true}
   device-registrations-per-hour: ${DVINE_DEVICE_REGISTRATIONS_PER_HOUR:10}
+  # new questions per user per minute (replays of a request id are free)
+  commands-per-minute: ${DVINE_COMMANDS_PER_MINUTE:20}
 
 ---
 spring:

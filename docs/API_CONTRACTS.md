@@ -14,6 +14,10 @@ Bearer token from `POST /api/v1/sessions`. The server decides the user. A body `
 
 `activeAgent` is optional (`obi` or `ivie`). It is only the face already on screen. Naming someone in the text overrides it.
 
+Each user may send `dvine.commands-per-minute` new questions a minute (default 20, `DVINE_COMMANDS_PER_MINUTE`); over that the answer is `429` and an audit event is written. A replay of a request id returns the stored task and is not counted.
+
+The phone (M7, `DeskClient`) creates one desk room on first use and keeps its id, makes a new one if the server answers `404`, signs in again once on `401`, and reads `GET /api/v1/tasks/{id}/events?after=0` after the command returns. It plays `THINK` and `SAY` events with a persona; `STATUS` events stay silent.
+
 `GET /api/v1/tasks/{id}`
 
 `GET /api/v1/tasks/{id}/events?after={eventId}`

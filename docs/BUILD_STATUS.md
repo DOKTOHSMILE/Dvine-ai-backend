@@ -3,7 +3,7 @@
 | Phase | Status | Scope | Next |
 |---|---|---|---|
 | 0 Discovery | IN PROGRESS | v5.0 plan plus v5.1 face rules. Repos started empty. | Keep this file honest. |
-| 1 Secure foundation | IN PROGRESS | Auth required, bootstrap off by default, owner-scoped rooms and tasks, audit on cross-reads. | Real user login. Rate limit. |
+| 1 Secure foundation | IN PROGRESS | Auth required, bootstrap off by default, owner-scoped rooms and tasks, audit on cross-reads. Device sign-in (rate-limited per address). Questions rate-limited per user (`CommandLimitTest`). | Real user login (account across devices). |
 | 2 Model gateway | IN PROGRESS | Interface plus mock. Prompts required. No provider key. | One real adapter after the provider is named. |
 | 3 Orchestrator | IN PROGRESS | Task lifecycle, idempotency, bounded Obi/Ivie debate, no tools. | Stream events while a live model is still talking. |
 | 4 Android face | IN PROGRESS | Separate repo. One face, switch on a line or a call. | Run on a phone. |
@@ -21,4 +21,4 @@ Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
 | S-L learning intake | VERIFIED (tests) | `learningSyncIsAuthenticatedOwnerScopedAndIdempotent`: 401 without a session; secrets and unknown kinds rejected; replay adds no rows; one row per owner; all PENDING; audit event written |
 | S-E episode archive + consolidation | VERIFIED (tests) | `EpisodesTest`: 401 without a session; secrets, unknown kinds and bad tags rejected; replay adds no rows; profile ranks favourites per group; other owners see nothing |
 
-`mvn test`: 13 tests pass.
+`mvn test`: 18 tests pass (2026-10-26), including `CommandLimitTest`. Verified end to end against the Android `DeskClient`: device register → session → desk room → command → THINK/SAY events.

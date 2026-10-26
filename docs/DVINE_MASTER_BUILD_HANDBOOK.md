@@ -883,3 +883,16 @@ Inspection sheets (software render of the shipped assets): `docs/brand/human_{ob
 - **Moves by everyday request:** "can you run?", "can you walk?", "jump", "sit down", "dance", "roll over", "do a flip", "lie down", "start running", "keep dancing", "show me how you walk". Questions get "Yes, I can." first. New poses: `jump` (crouch, leap, land), `roll` (log roll on the floor), `lie` (on the back, one knee up). "Can you walk me through…" and "can you run the numbers" are not moves.
 - **Drawing with the body (wire look):** on a draw request, the GL body hides and its vertices become nano dots in the same screen spots. They burst apart and glow as drifting dust for a few seconds, then fly into the drawing as it is drawn. When the drawing ends, the same dots fly back to where the body's vertices are, and the body fades back in (`StageView.scatterBody`, `dotsHome`).
 - **Advanced drawings:** spiral galaxy, black hole (accretion disk, photon ring, lensed far side), tesseract (a 4D hypercube turning in two planes, re-projected every frame), Lorenz attractor (draws itself as it unfolds), 3D fractal tree, rocket, butterfly (wings from the polar butterfly curve, flapping), Eiffel Tower (curved lattice legs, platforms, cross-bracing), brain (folded hemispheres, cerebellum, brain stem), Möbius strip, Saturn (with the Cassini division), spreading ripples. Each has a spoken explanation. Sheets: `docs/brand/drawings_advanced_{1,2}.png`, `draw_scatter_{obi,ivie}.png`.
+
+## 29. The online client (M7, v1.9, built)
+
+When the offline brain can't answer and the phone has validated internet and an https server is set, the question goes to the server's desk instead of the apology:
+
+1. The thought bubble shows "Checking with the desk…" (Obi) or "Let me ask the desk…" (Ivie).
+2. `DeskClient` (off the main thread) gets a session token (`SessionClient`: device sign-in, no secret in the app), creates or reuses the user's desk room, and posts `POST /api/v1/desk-rooms/{id}/commands` with a fresh request id and the face on screen.
+3. It reads the task's events and plays them: `THINK` lines go in the bubble (whispered), `SAY` lines are spoken by the persona named on the line, `STATUS` events stay silent. The server's "Obi is thinking" placeholder shows as the bubble's dots.
+4. On `401` it signs in again once; on `404` it makes a new room once; on anything else (offline, timeout, `429`, `5xx`) the offline answer plays. A newer question makes an older desk answer stale; it is dropped.
+
+Safety stays on the phone: consequential requests are still gated locally (GATE) and never sent as actions. Only https servers are used.
+
+Server side: each user may send 20 new questions a minute (`dvine.commands-per-minute`), replays are free. The desk's words still come from the mock gateway until a model provider is chosen (Track S Phase 2).
