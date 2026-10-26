@@ -806,3 +806,93 @@ One action manager scores candidates as `S(a) = w_g·G + w_c·C + w_r·R − w_k
 | 10 | Advanced embodiment (sensors) | out of scope for the phone |
 
 - **Final rule:** *the brain decides what an interaction means; body awareness determines what happened; the anatomical controller decides what movement is valid; the visual engine maintains and renders the body; validation confirms the result.* A repair is only "done" once it has been validated against the mesh, skeleton, reference and touch map.
+
+## 27. The on-device engine, and what the server does instead (v1.6, built)
+
+**Rule:** the brain-and-body control engine lives on the phone. Everything DVINE needs to listen, think simply, move, react and stay safe works offline and in real time. The server takes only **secondary** jobs: ones that need the whole history, heavy compute or the internet. Their results flow back as hints the phone may ignore. If the server is gone, DVINE loses nothing it needs in the moment.
+
+| Function (ANBA network) | Where | Code |
+|---|---|---|
+| Hearing, speech-to-text, speaking | phone | `ListenBridge`, `TalkBridge` |
+| Routing and simple reasoning (rules + knowledge pack) | phone | `OfflineBrain` |
+| Executive: validated commands, action selection, one owner per channel, priorities, queues, stale-command expiry, stop | phone | `engine/Supervisor`, `Command`, `Skills` |
+| Motor control, joint limits, floor contact, face rig | phone | `DotBody`, `DotHead`, `FaceRig`, `StageView` (60 Hz) |
+| Behaviour loop | phone, 10 Hz | `Engine.tick` (timed commands, mood drift, expression) |
+| Appraisal and affect (regulated expression bias) | phone | `engine/Affect` → `FaceRig.setMood` |
+| Working memory (7 items, priorities, expiry) | phone | `engine/WorkingMemory` |
+| Embodied state model and self-monitoring ("what are you doing?") | phone | `Engine.state`, `Engine.selfReport` |
+| Touch on the body and reactions | phone | `StageView.partAt` → `Engine.onTouch` |
+| Short episodic buffer (≤300 kept, uploaded ones dropped after 3 days, never the user's words) | phone | `engine/Episodes` |
+| Learning journal (taught facts, corrections, unanswered) | phone, then server | `LearningJournal` → S-L |
+| **Long-term episodic archive** | **server** | `POST /api/v1/episodes/sync` (owner-scoped, idempotent, secrets rejected) |
+| **Memory consolidation into favourites** (poses, scenes, objects, touches, persona; 90 days) | **server** | `GET /api/v1/episodes/profile` → `Engine.applyProfile` ("what do I like?") |
+| **Knowledge pack builds and updates** | **server** | S-K |
+| **Review of shared learning** | **server** | S-L review queue |
+| **Open-ended reasoning with a large model** | **server** (M7) | later |
+| Skill-usage analytics and controlled skill learning | server (later) | from the episode archive |
+
+- **Command path:** brain answer → `Engine.perform` → typed `Command` (action, value, priority, deadline) → `Supervisor` (validate against the skill registry → expire if stale → preempt, queue or reject) → `BodyPort` (the stage) → result reported back (COMPLETED, PREEMPTED, REJECTED with a reason, EXPIRED, CANCELLED). Failures the user asked for become FAILURE episodes and show up in the self-report.
+- **Priorities:** stop (100) > user request (60) > touch reaction (30) > idle (10). A scene finishes unless the user asks for something else. A touch never interrupts what the user asked for. Switching view, redrawing and turning round are momentary overlays: they don't take over the body.
+- **Privacy:** episodes carry generated summaries and tags ("pose:pushups", "touch:left hand"), never what the user said. They upload only while sharing is on ("stop sharing" turns it off). The server keeps them per owner.
+- **Voice:** "stop" / "that's enough" (cancel everything and stand), "what are you doing" / "status report" (self-report from real state), "what do I like" (favourites consolidated by the server, or an honest "not yet").
+
+## 28. The anatomical 3D wireframe human (v1.7, built)
+
+Obi and Ivie are now real 3D meshes: closed, skinned, rigged triangle surfaces drawn as a glowing wireframe with vertex dots on black. Obi is cyan, Ivie amber-gold. It replaces the nano-dot swarm as the default look ("dot mode" still brings the swarm back; "wireframe" returns).
+
+**Architecture**
+
+| Layer | Package | What it does |
+|---|---|---|
+| Mesh core | `human/mesh` | `SurfaceNets` (signed-distance field → surface), `MeshClean` (weld), `Decimator` (quadric simplification, importance-weighted: detail on face and hands, no flips, link condition), `MeshValidator` (closed 2-manifold, winding, positive volume, skin, regions), `TriMesh` (edges sorted by importance for LOD) |
+| Anatomy | `human/build/Anatomy` | sculpted head (cranium, brow ridge, eye sockets, cheekbones, nose bridge/tip/wings, lips, jaw, chin, ears, neck; male squared jaw and larynx, female finer jaw and hair shell), body (rib cage, trapezius, pecs or breasts, collarbones, abdomen, pelvis, glutes, deltoids, biceps/triceps, forearms, quadriceps/hamstrings, kneecaps, calves, ankles, heels, toes), hands with five separate two-segment fingers and a thumb |
+| Assets | `human/build/AssetBuilder`, `AssetTool`; `human/HumanAsset` | builds each variant, adds eyeballs with iris rings, two rows of teeth, feature lines (eyelids, brows, nostrils, lip line), 46 swaying hair strands for Ivie, 15 blend shapes, 18 landmarks; binary `.dvhm` with a CRC32. Shipped: `assets/human/obi.dvhm` (3,400 triangles), `ivie.dvhm` (3,600 triangles), a deliberately low-poly mesh so each line reads clearly |
+| Skeleton and rig | `human/rig` | 37 bones (17 body + 2 segments × 5 fingers × 2 hands), A-pose bind; the existing pose library (`DotBody.POSES`) drives it; joint limits and a 600°/s rate limit; finger shapes per pose (fist, point, open); analytic two-bone IK for reaching and foot planting; gaze shared by eyes (±12°), neck and head; capsule collision keeps hands out of the body; `validate()` checks bone lengths, limits, finite values and collisions |
+| Skinning | `human/HumanInstance` | two-bone linear blend skinning; weights diffused over the surface (8 passes body, 4 hands) so joints bend over a band; blend shapes, eye turn and hair sway applied before skinning; feet settle on the floor (never sink) |
+| Face | `human/face` | `FaceShapes` (jawOpen, smile/frown L/R, brows, blink, wide eyes, lip round/wide/press), `FaceDrive` (expressions smile, frown, surprise, attention, sad, angry; spring-driven blinks and glances; speech wins on the mouth), `Visemes` (per-word mouth shapes from TTS word timing). Identity is fixed: shapes only move features, never the proportions |
+| Touch | `human/touch`; `HumanInstance.pick` | screen ray → front-facing triangle → one of 45 named body parts, contact point in world and bone-local space, timestamp, duration; `TouchClassifier` turns presses into TAP, REPEAT (with count) or HOLD and drops duplicates. No pressure is claimed (a phone screen has none) |
+| Self-inspection | `human/inspect/Inspector` | NORMAL (check), LOCAL_REPAIR (blend shapes off, stand, re-check), RECONSTRUCTION (rebuild from the recipe off the UI thread; accepted only if valid and the face keeps its landmark ratios within 4%, unless the user asked for a new look). The approved asset is never overwritten |
+| Renderer | `render/` | OpenGL ES 3 (`HumanView`, a `GLSurfaceView` under the transparent stage): dark fill with polygon offset (hidden lines removed), additive glow + core line passes (lines are screen-space quads fetched from float textures), rim light, vertex dots, dotted floor grid, LOD by edge importance in body view, both personas in one view for the demo. Context loss rebuilds every GL object; detach frees them; `FrameStats` keeps average and 95th-percentile frame time |
+
+**Rules the AI cannot bypass:** every movement goes `Engine` → `Supervisor` (validated command) → `StageView` → `HumanStage` → rig. The rig clamps joints to anatomical limits, rate-limits them, resolves collisions and keeps feet on the floor whatever the pose asks for.
+
+**Voice:** "show both of you" / "demo" (both personas side by side), "smile", "look surprised", "frown"…, "self check" or "status report" (the self-report includes the inspector), "wireframe" / "dot mode".
+
+**Build and regenerate**
+
+```
+gradle testDebugUnitTest assembleDebug     # tests + APK
+gradle :app:generateHumanAssets            # rebuild obi.dvhm / ivie.dvhm (~6 s each, deterministic)
+```
+
+Inspection sheets (software render of the shipped assets): `docs/brand/human_{obi,ivie}_{views,face,poses}.png` (front, 3/4, side, rear; face expressions; poses).
+
+**Tests (§10 of the spec):** `HumanTest` (assets valid and reject corruption; the head is genuinely 3D; landmarks aligned from every view; the mouth opens without flipping triangles; the head joins the neck; every pose of both variants deforms without tears, everyday poses stretch skin < 2.6×; touch finds nose, chin, knee and chest and misses empty space; touch classification; reconstruction keeps identity and refuses unapproved changes; IK reach, planted feet, hands out of the body; expressions and visemes); `WireRendererTest` (fake GL: no leaks after dispose, recovery after context loss, no GL errors over 120 frames; camera rays pass through projected points).
+
+**Known limits**
+- Not yet run on a phone: frame rate, the GL shaders on real drivers and touch feel are unverified.
+- Linear skinning: at the deepest hip bends (sit, squat, kneel) a few crotch edges stretch up to ~3.7×; corrective shapes would fix it.
+- Visemes come from word text and timing, not from the audio, so lip sync is approximate.
+- The mouth has teeth and a groove but no tongue or inner mouth surface.
+- Touch knows where and how long, not how hard.
+
+### 28.1 Clarity, thoughts, more moves, and drawing with the body (v1.8)
+
+- **Clearer wireframe:** about 60% fewer triangles (head 1,100, body 1,500, 200 per hand), so the polygons read as clean facets. Body view uses thinner lines and smaller dots and drops the feature-line glow.
+- **Thought bubble:** while a persona thinks, a cloud bubble rises above the head with three trailing puffs, tracking the head's crown on screen. Inner thoughts appear inside it; otherwise three dots pulse. It fades out when they speak (`StageView.setThought`, `drawThought`).
+- **Moves by everyday request:** "can you run?", "can you walk?", "jump", "sit down", "dance", "roll over", "do a flip", "lie down", "start running", "keep dancing", "show me how you walk". Questions get "Yes, I can." first. New poses: `jump` (crouch, leap, land), `roll` (log roll on the floor), `lie` (on the back, one knee up). "Can you walk me through…" and "can you run the numbers" are not moves.
+- **Drawing with the body (wire look):** on a draw request, the GL body hides and its vertices become nano dots in the same screen spots. They burst apart and glow as drifting dust for a few seconds, then fly into the drawing as it is drawn. When the drawing ends, the same dots fly back to where the body's vertices are, and the body fades back in (`StageView.scatterBody`, `dotsHome`).
+- **Advanced drawings:** spiral galaxy, black hole (accretion disk, photon ring, lensed far side), tesseract (a 4D hypercube turning in two planes, re-projected every frame), Lorenz attractor (draws itself as it unfolds), 3D fractal tree, rocket, butterfly (wings from the polar butterfly curve, flapping), Eiffel Tower (curved lattice legs, platforms, cross-bracing), brain (folded hemispheres, cerebellum, brain stem), Möbius strip, Saturn (with the Cassini division), spreading ripples. Each has a spoken explanation. Sheets: `docs/brand/drawings_advanced_{1,2}.png`, `draw_scatter_{obi,ivie}.png`.
+
+## 29. The online client (M7, v1.9, built)
+
+When the offline brain can't answer and the phone has validated internet and an https server is set, the question goes to the server's desk instead of the apology:
+
+1. The thought bubble shows "Checking with the desk…" (Obi) or "Let me ask the desk…" (Ivie).
+2. `DeskClient` (off the main thread) gets a session token (`SessionClient`: device sign-in, no secret in the app), creates or reuses the user's desk room, and posts `POST /api/v1/desk-rooms/{id}/commands` with a fresh request id and the face on screen.
+3. It reads the task's events and plays them: `THINK` lines go in the bubble (whispered), `SAY` lines are spoken by the persona named on the line, `STATUS` events stay silent. The server's "Obi is thinking" placeholder shows as the bubble's dots.
+4. On `401` it signs in again once; on `404` it makes a new room once; on anything else (offline, timeout, `429`, `5xx`) the offline answer plays. A newer question makes an older desk answer stale; it is dropped.
+
+Safety stays on the phone: consequential requests are still gated locally (GATE) and never sent as actions. Only https servers are used.
+
+Server side: each user may send 20 new questions a minute (`dvine.commands-per-minute`), replays are free. The desk's words still come from the mock gateway until a model provider is chosen (Track S Phase 2).

@@ -20,6 +20,21 @@ dvine:
   # phones register themselves (no secret in the app); rate-limited per address
   device-registration-enabled: ${DVINE_DEVICE_REGISTRATION:true}
   device-registrations-per-hour: ${DVINE_DEVICE_REGISTRATIONS_PER_HOUR:10}
+  # new questions per user per minute (replays of a request id are free)
+  commands-per-minute: ${DVINE_COMMANDS_PER_MINUTE:20}
+  # the per-user Linux sandbox (needs a container engine; runs are refused with 503 without one)
+  workspace:
+    root: ${DVINE_WORKSPACE_ROOT:${java.io.tmpdir}/dvine-workspaces}
+    image: ${DVINE_WORKSPACE_IMAGE:dvine-sandbox:1}
+    egress-network: ${DVINE_WORKSPACE_EGRESS_NETWORK:}
+    egress-proxy: ${DVINE_WORKSPACE_EGRESS_PROXY:}
+    timeout-seconds: ${DVINE_WORKSPACE_TIMEOUT:30}
+    runs-per-hour: ${DVINE_WORKSPACE_RUNS_PER_HOUR:30}
+  # the only way out to the internet for sandbox code and web fetches
+  egress:
+    bind: ${DVINE_EGRESS_BIND:127.0.0.1}
+    port: ${DVINE_EGRESS_PORT:0}
+    allow: ${DVINE_EGRESS_ALLOW:*.wikipedia.org,*.wiktionary.org,*.wikimedia.org,pypi.org,files.pythonhosted.org,registry.npmjs.org,github.com,api.github.com,raw.githubusercontent.com,codeload.github.com,objects.githubusercontent.com,dl-cdn.alpinelinux.org,deb.debian.org,docs.python.org,developer.mozilla.org,stackoverflow.com,api.open-meteo.com}
 
 ---
 spring:
