@@ -409,3 +409,12 @@ The black space around the face is a drawing canvas. When a drawing helps, the f
 - Inner-thought voice: same voice as the persona, at 72% volume, about 4% lower and 8% slower.
 - Tune by voice, per persona, saved on the phone: "try a different voice", "speak slower", "speak faster", "deeper voice", "higher voice", "reset your voice" (add "Ivie" or "Obi" to choose who).
 - If the phone has no Nigerian English voice, install it: Settings → System → Languages → Text-to-speech → Google → Install voice data → English (Nigeria).
+
+
+## 21. Automatic backup of offline learning (v1.2.2)
+
+- What the phone learns offline (taught facts, corrections, unanswered questions) uploads to the user's DVINE account **automatically** whenever it is online: on reconnect, right after something new is learned, and on "upload what you learned". Sharing is on by default and announced at first run; "stop sharing" keeps everything on the phone, "share what you learned" turns it back on. Secrets are never stored or sent.
+- Sign-in without any secret in the app: the phone registers once (`POST /api/v1/devices/register`), keeps its device secret encrypted with an Android Keystore key (`net/DeviceVault`), and trades it for 12-hour session tokens (`POST /api/v1/sessions/device`) in `net/SessionClient`.
+- Server address: the build's `api_base`, or by voice "connect to server https://…". HTTPS only.
+- "Sync status" says how many items are waiting; a faint "Backed up N things I learned." subtitle confirms each upload.
+- Server side keeps every upload owner-scoped and PENDING review (§5 S-L).
