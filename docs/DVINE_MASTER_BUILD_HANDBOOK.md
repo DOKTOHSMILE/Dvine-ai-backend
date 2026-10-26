@@ -1,6 +1,6 @@
 # DVINE — Master Build Handbook
 
-Version 1.0 · the playbook we build from. It merges the Master Specification v1.0, the Implementation-Ready Engineering Plan v5.0, the v5.1 face note, and every decision from the planning conversation. When two sources disagree, this file names the winner and why.
+Version 1.1 · the playbook we build from. It merges the Master Specification v1.0, the Implementation-Ready Engineering Plan v5.0, the v5.1 face note, and every decision from the planning conversation. When two sources disagree, this file names the winner and why.
 
 Names: **O-bìì** (Obi, said "O-bìì") and **Ēèvié** (Ivie, said "Eè-vi-eh"). Product: **DVINE** (D-V-I-N-E).
 
@@ -43,7 +43,7 @@ Shared character rules (all stages):
 
 | Topic | Decision | Reason |
 |---|---|---|
-| Ivie's hair | **Ivie has flowing wireframe hair.** | The v5.1 note and the latest reference images (gold wireframe with long hair) are newer than v5.0's "hairless". Obi stays hairless. |
+| Ivie's hair | **Ivie has light swept-back wireframe hair** (approved art: Obi angular flat-top bust, Ivie profile with hair streaming behind). Remove it if it gets too busy. | The owner's preferred image is newer than v5.0's "hairless". Obi stays hairless. |
 | Face rendering | **Procedural wireframe on Android Canvas.** No hand-typed vertex tables, no OpenGL overlay in the MVP. | The old hard-coded mesh plus a GL surface layered over the Canvas was the main source of visual errors and was impossible to adjust. A generated mesh is small, testable on the JVM, and changes by editing numbers. |
 | One face or two | **One face on screen at a time**, switching as each persona speaks. | Keeps the face large (55–65% of height) on a phone. |
 | Offline brain | **Rule-and-retrieval engine on a downloadable knowledge pack**, not an on-device LLM, for v1. | Works on every phone, starts instantly, testable, no model licensing. An on-device small model is a later, optional module (Stage M9). |
@@ -150,8 +150,10 @@ Geometry (all in `WireHead`, unit head height ≈ 2):
 - Budget: ≤ ~3,500 edges per frame; 60 fps target on a mid phone.
 - Tests: mesh is non-empty, all indices valid, no NaN after deform, head is left/right symmetric, Ivie has hair and Obi has none, jaw open moves the chin down.
 
-### Stage M3 — Screen layout and states · gate: device check
-- Black canvas. Top: "DVINE" + link badge `ONLINE` / `OFFLINE` (real, from Connectivity). Face 55–65% of height. Name + role under the face. Signal bars. One status pill. One card (latest activity or staged preview). Input row (mic + keyboard).
+### Stage M3 — Zero-screen stage and states · gate: device check
+- **There is no screen UI.** Pure black, the face, the hands, the drawing canvas and sparkles. No buttons, no input row, no cards, no menus. See §11.
+- A single faint subtitle line shows what is being said (accessibility; can be turned off by voice: "hide subtitles").
+- A tiny dot at the top edge shows online (persona colour) or offline (grey); no text badge.
 - States: CONTENT, LISTENING, THINKING, SPEAKING, APPROVAL, DONE, ERROR (see FaceRig).
 - Gestures: swipe = mic on/off; tap face = current persona speaks; drag face = turn head; tap input = keyboard.
 - Accessibility: content descriptions; colour never the only signal (status text always shown).
@@ -281,3 +283,93 @@ Command: `gradle testDebugUnitTest assembleDebug`.
 8. Update BUILD_STATUS with evidence.
 
 After this: Track S implements S-K and S-L; Track M does M7.
+
+
+---
+
+# Part II — v1.1 additions
+
+## 11. Zero-screen interaction (no UI, only voice)
+
+The phone shows only the persona. Everything else is spoken.
+
+| Gesture | Effect |
+|---|---|
+| Swipe anywhere | microphone on / off |
+| Tap the face | the persona on screen speaks to you |
+| Drag the face | turn the head |
+| Long-press (accessibility only) | system keyboard for silent typing |
+
+Rules:
+1. **The model asks, the user confirms.** Any action that leaves the app or touches data is first described out loud as a question ("Shall I open WhatsApp with this post…? Say yes to continue."). The mic opens by itself for the answer.
+2. **Yes** (yes, yeah, yep, go ahead, do it, send it, confirm, okay) runs it. **No** (no, cancel, stop, don't) cancels. Anything else keeps it pending. A pending action expires after 2 minutes.
+3. **Share / post** → Android `Intent.ACTION_SEND` with the text, aimed at the named app (WhatsApp, X, Facebook, Instagram, LinkedIn, Telegram) or the system chooser. The user lands on the post screen in that app and presses send **themselves**. DVINE reports "handed over", never "posted" (v5.0: a share-sheet handoff is not proof of publication).
+4. **Copy** → content is put on the clipboard, then the persona says "Copied. It's on your clipboard."
+5. Payments, transfers, deletion, shell, passwords: still refused out loud.
+
+Code: `brain/ActionPlanner.java` (pure, tested), executed by `act/Actions.java`.
+
+## 12. First run: the name
+
+On the first open, before anything else:
+1. Obi appears: "Welcome. I'm Obi, and with me is Ivie. Before we begin, what's your name?" The mic opens.
+2. The answer is parsed ("my name is Valentine", "I'm Val", "Valentine") by `brain/Onboarding.java`.
+3. Ivie confirms: "Welcome, Valentine. We'll remember that." The name is stored on the phone (`profile` prefs) and in memory as "my name".
+4. From then on greetings use the name. "Call me …" changes it.
+5. If the name isn't caught twice, they move on kindly and ask again next launch.
+
+## 13. Hands and gestures
+
+Both personas have wireframe hands (`face/WireHand.java`, procedural like the head: palm and three-segment fingers with per-finger curl, spread and wrist pose). Hands rise into view under the chin for a gesture, hold, then lower.
+
+Supported gestures (emoji key → pose): 👍 👎 👋 🤚 🖐 ✋ 🖖 👌 🤌 🤏 ✌ 🤞 🫰 🤟 🤘 🤙 👈 👉 👆 👇 ☝ 🫵 ✊ 👊 🤛 🤜 🫳 🫴 🫱 🫲 🫸 🫷 🙏 🙌 👐 🤲 🫶 🤝 ✍ 🤳 💅. 🖕 is deliberately not implemented.
+
+When they gesture:
+- greetings → 👋, thanks → 🙏 or 👍, agreement between Obi and Ivie → 🤝 / 🫶, comfort on sad news → 🤲, explanations → ☝ / 👉, a joke → 🤙, encouragement → 🙌.
+- The user can ask: "show me a thumbs up", or say/type the emoji.
+
+## 14. Explanation canvas (illustration mode)
+
+The black space around the face is a drawing canvas. When a drawing helps, the face moves up and small, and lines draw themselves in the persona colour while they speak, like a whiteboard video.
+
+- `face/Sketch.java` holds strokes (polylines in a −1..1 box), circles, arrows and short labels, each with a start time; `StageView` draws them progressively.
+- v1 drawings: basic shapes (circle, square, triangle, star, heart, arrow), addition as dot groups ("explain 3 plus 4"), fractions as a pie ("explain a half / a quarter"), the solar system, and a simple plan timeline ("draw steps").
+- Later the server can send sketch scripts with an answer (same JSON shape: `{"strokes":[{"kind":"line|circle|arrow|label","pts":[...],"text":"","t":0.0}]}`).
+
+## 15. Offline knowledge up to 1 GB
+
+| Tier | Size | How it arrives | Storage |
+|---|---|---|---|
+| Core pack | 1–5 MB | inside the APK (first install) | JSON asset |
+| Update pack | 1–5 MB | replaces core when newer, sha256-checked | `files/knowledge/base_knowledge.json` |
+| Shards | up to ~1 GB total | user agrees by voice ("download the full library"); Wi-Fi + charging by default; resumable | `files/knowledge/shards/*.json` now, SQLite FTS5 databases for shards > 20 MB |
+
+- Shard subjects: dictionary (English + Pidgin, Yoruba, Igbo, Hausa, French), Bible (public-domain KJV/WEB), encyclopedia summaries, maths/science explanations with sketches, health first aid, business basics, Nigeria/Africa civic and geography.
+- Before download: check free space ≥ 2× shard size, tell the user the size out loud, ask to confirm.
+- The brain searches core first, then shards; answers carry the shard name as their source.
+- Manifest grows to `{"version", "sha256", "url", "shards":[{"id","version","size","sha256","url"}]}`.
+- Today: `KnowledgeStore` merges any `shards/*.json` with the core pack. SQLite shards are Stage M10.
+
+## 16. Voices and ambience
+
+- **Voices:** prefer Nigerian English (`en-NG`) voices from the system TTS (Google TTS ships them), else African/British English. Obi takes the deeper voice, Ivie the warmer one. Speech is slow and gentle: Obi rate 0.86 / pitch 0.86, Ivie rate 0.90 / pitch 1.02. A custom neural Nigerian voice (server TTS) is a later upgrade behind the same `TalkBridge`.
+- **Background instrumental:** a soft, slow, low pad synthesised on the phone (`voice/AmbientPad.java`, no audio files), rising gently while they speak and fading in silence. Obi's chord sits lower and darker, Ivie's warmer and brighter. Volume stays far under the voice. "Music off" / "music on" by voice.
+
+## 17. Magic ✨
+
+- Sparkles drift up around the persona while thinking, burst softly when an answer is ready or a copy/share succeeds.
+- The face assembles from scattered points on wake and dissolves to points on switch.
+- Hands leave a faint light trail.
+- Everything stays restrained: the face is always the main thing on screen.
+
+## 18. Updated build order (v1.1)
+
+1. Playbook update (this part).
+2. ActionPlanner + Onboarding + gesture/sketch hints in the brain, with tests.
+3. WireHand + gesture table, with tests.
+4. Sketch engine + drawings.
+5. Face refinement: shaded triangle fill for 3D depth, stronger jaw and neck.
+6. New zero-screen `StageView` replacing `MatrixStageView`.
+7. Voices (en-NG preference) + AmbientPad.
+8. Shard merging in KnowledgeStore.
+9. Build, tests, previews, BUILD_STATUS.
