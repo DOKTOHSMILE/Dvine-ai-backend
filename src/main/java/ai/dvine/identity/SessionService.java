@@ -48,14 +48,25 @@ public class SessionService {
         }
         Instant now = Instant.now();
         String userId = UUID.randomUUID().toString();
+        store.insertUser(userId, now);
+        return issue(userId, device, "session.bootstrap");
+    }
+
+    /** A 12-hour session for an existing user (device sign-in). */
+    @Transactional
+    public Issued issue(String userId, String device) {
+        return issue(userId, device, "session.device");
+    }
+
+    private Issued issue(String userId, String device, String action) {
+        Instant now = Instant.now();
         String sessionId = UUID.randomUUID().toString();
         byte[] raw = new byte[32];
         random.nextBytes(raw);
         String token = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
         Instant expires = now.plusSeconds(12 * 60 * 60);
-        store.insertUser(userId, now);
         store.insertSession(sessionId, userId, sha256(token), device, expires);
-        store.audit(userId, userId, "session.bootstrap", "allow", sessionId, now);
+        store.audit(userId, userId, action, "allow", sessionId, now);
         return new Issued(token, userId, expires);
     }
 

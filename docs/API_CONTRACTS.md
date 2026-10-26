@@ -61,3 +61,10 @@ Implemented (`ai.dvine.knowledge`, `ai.dvine.learning`, migration V2). The Andro
 Response `{ "accepted": ["id", ...], "rejected": [ { "id": "...", "reason": "..." } ] }`. Repeated ids are accepted again without duplicating rows. Entries land owner-scoped in a review queue (`PENDING`); nothing is promoted into a shared pack without review and de-identification. Personal facts stay in that user's private memory.
 
 Offline wording the server may reuse when its own store is unreachable: "I'm unable to connect to my database to get more information. Please connect to the internet and ask me again."
+
+
+## Device sign-in (no secret in the app)
+
+`POST /api/v1/devices/register` `{ "deviceId": "uuid" }` → `201 { "userId", "deviceSecret" }`. Once per device; a second registration of the same `deviceId` is `409`. Rate-limited per client address (`dvine.device-registrations-per-hour`, default 10; `429` when exceeded). Turn off with `DVINE_DEVICE_REGISTRATION=false`. Behind a reverse proxy, enable forwarded headers (`server.forward-headers-strategy=framework`) so the limit sees the phone's address.
+
+`POST /api/v1/sessions/device` `{ "deviceId", "deviceSecret" }` → `{ "token", "userId", "expiresAt" }` (12 hours). Wrong secret is `401`. The phone keeps the device secret encrypted with an Android Keystore key and signs in again when the token expires.
