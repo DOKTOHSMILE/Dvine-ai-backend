@@ -28,6 +28,7 @@ Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
 | Item | Status | Evidence |
 |---|---|---|
 | Structured reading, questions are not deletes | IN TESTS (plain JVM, not Maven) | `SemanticInterpretationService` keeps negation; a question about deleting is an explanation, not a delete |
+| A date question is the clock | IN TESTS (plain JVM, not Maven) | `SemanticInterpretationService` marks "what is today's date" as `clock`, not as a change |
 | Research notes do not become commands | IN TESTS (plain JVM, not Maven) | `ResearchService` strips `rm -rf`, `sudo`, and `curl|sh`; `executed` stays false; `OfflinePageSource` does not fetch the public web |
 
 `POST /api/v1/interpret` and `POST /api/v1/research` require a session, like the other private routes. No provider key was added.

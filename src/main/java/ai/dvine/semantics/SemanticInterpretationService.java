@@ -12,6 +12,10 @@ public class SemanticInterpretationService {
         if (n.isEmpty()) {
             return new Reading("insufficient", "clarify", "none", true, "Nothing was said.");
         }
+        if (n.matches(".*(what is today'?s date|what day is it|what time is it|what year is it).*")
+                && !n.contains("what would happen")) {
+            return new Reading("understood", "clock", "clock", false, "Answer from the device clock. Nothing else changes.");
+        }
         if (n.contains("what would happen") || n.startsWith("explain ")) {
             return new Reading("understood", "explain", "explain", false, "This asks for an explanation. Nothing will be changed.");
         }

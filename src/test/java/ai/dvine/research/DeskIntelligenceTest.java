@@ -9,6 +9,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DeskIntelligenceTest {
     @Test
+    void aDateQuestionIsTheClock() {
+        SemanticInterpretationService.Reading reading = new SemanticInterpretationService()
+                .interpret("What is today's date?");
+        assertEquals("clock", reading.operation());
+        assertFalse(reading.note().toLowerCase().contains("deleted"));
+    }
+
+    @Test
     void aQuestionIsNotADelete() {
         SemanticInterpretationService.Reading reading = new SemanticInterpretationService()
                 .interpret("What would happen if I deleted this file?");
