@@ -21,3 +21,15 @@ Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
 | S-L learning intake | VERIFIED (tests) | `learningSyncIsAuthenticatedOwnerScopedAndIdempotent`: 401 without a session; secrets and unknown kinds rejected; replay adds no rows; one row per owner; all PENDING; audit event written |
 
 `mvn test`: 13 tests pass.
+
+
+## Interpret and research
+
+| Item | Status | Evidence |
+|---|---|---|
+| Structured reading, questions are not deletes | IN TESTS (plain JVM, not Maven) | `SemanticInterpretationService` keeps negation; a question about deleting is an explanation, not a delete |
+| Research notes do not become commands | IN TESTS (plain JVM, not Maven) | `ResearchService` strips `rm -rf`, `sudo`, and `curl|sh`; `executed` stays false; `OfflinePageSource` does not fetch the public web |
+
+`POST /api/v1/interpret` and `POST /api/v1/research` require a session, like the other private routes. No provider key was added.
+
+Not run this build: `mvn test` (Maven is not installed on the machine that prepared the commit).
