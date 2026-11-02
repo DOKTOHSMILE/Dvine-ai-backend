@@ -20,10 +20,12 @@ public class TaskService {
 
     private final DvineStore store;
     private final Deliberation deliberation;
+    private final CommandLimiter limiter;
 
-    public TaskService(DvineStore store, Deliberation deliberation) {
+    public TaskService(DvineStore store, Deliberation deliberation, CommandLimiter limiter) {
         this.store = store;
         this.deliberation = deliberation;
+        this.limiter = limiter;
     }
 
     @Transactional
@@ -35,6 +37,10 @@ public class TaskService {
         var existing = store.findByIdempotency(userId, requestId);
         if (existing.isPresent()) {
             return new TaskView(existing.get().id(), requestId, existing.get().state(), existing.get().resultText(), true);
+        }
+        if (!limiter.allow(userId)) {
+            store.audit(userId, userId, "task.submit", "deny", "rate_limited", Instant.now());
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "slow_down");
         }
         String taskId = UUID.randomUUID().toString();
         Instant now = Instant.now();

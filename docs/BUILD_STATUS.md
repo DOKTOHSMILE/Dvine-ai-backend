@@ -3,14 +3,16 @@
 | Phase | Status | Scope | Next |
 |---|---|---|---|
 | 0 Discovery | IN PROGRESS | v5.0 plan plus v5.1 face rules. Repos started empty. | Keep this file honest. |
-| 1 Secure foundation | IN PROGRESS | Auth required, bootstrap off by default, owner-scoped rooms and tasks, audit on cross-reads. | Real user login. Rate limit. |
+| 1 Secure foundation | IN PROGRESS | Auth required, bootstrap off by default, owner-scoped rooms and tasks, audit on cross-reads. Device sign-in (rate-limited per address). Questions rate-limited per user (`CommandLimitTest`). | Real user login (account across devices). |
 | 2 Model gateway | IN PROGRESS | Interface plus mock. Prompts required. No provider key. | One real adapter after the provider is named. |
 | 3 Orchestrator | IN PROGRESS | Task lifecycle, idempotency, bounded Obi/Ivie debate, no tools. | Stream events while a live model is still talking. |
 | 4 Android face | IN PROGRESS | Separate repo. One face, switch on a line or a call. | Run on a phone. |
 
 Evidence, 2026-10-25: `mvn test` — TaskIsolationTest 9, BootstrapClosedTest 1, 0 failures. H2, not a device, not a live model.
 
-Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
+Not in this commit: memory, pgvector, social, wallet.
+
+| Linux workspace + internet | VERIFIED (tests) / engine pending | `ai.dvine.workspace` (Docker runner, locked down; runs, files, quotas, rate limit), `ai.dvine.web` (egress proxy with allow-list and private-address refusal, web fetch); `WorkspaceTest` (5) | run `sandbox/` with a container engine on the deployed server |
 
 
 ## S-K / S-L (Track S)
@@ -19,8 +21,9 @@ Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
 |---|---|---|
 | S-K knowledge pack manifest + download | VERIFIED (tests) | `KnowledgeAndLearningTest.manifestMatchesThePackItServes`: sha256 and size match the served bytes; unknown version 404; public GET |
 | S-L learning intake | VERIFIED (tests) | `learningSyncIsAuthenticatedOwnerScopedAndIdempotent`: 401 without a session; secrets and unknown kinds rejected; replay adds no rows; one row per owner; all PENDING; audit event written |
+| S-E episode archive + consolidation | VERIFIED (tests) | `EpisodesTest`: 401 without a session; secrets, unknown kinds and bad tags rejected; replay adds no rows; profile ranks favourites per group; other owners see nothing |
 
-`mvn test`: 13 tests pass.
+`mvn test`: 18 tests pass (2026-10-26), including `CommandLimitTest`. Verified end to end against the Android `DeskClient`: device register → session → desk room → command → THINK/SAY events.
 
 
 ## Interpret and research
@@ -34,3 +37,12 @@ Not in this commit: memory, pgvector, social, shell, wallet, background jobs.
 `POST /api/v1/interpret` and `POST /api/v1/research` require a session, like the other private routes. No provider key was added.
 
 Not run this build: `mvn test` (Maven is not installed on the machine that prepared the commit).
+
+
+## DVINE's own online model
+
+| Item | Status | Evidence |
+|---|---|---|
+| Phones use a big model on the server like an API model | VERIFIED (tests, against a stand-in llama-server) | `ServerModelTest`: a session is required; `/api/v1/llm/models` names the server's model; a whole reply and a streamed reply (SSE, piece by piece) come back; the request reaches llama-server with the server's model name, `max_tokens` capped, OpenAI-only fields dropped; over the per-minute limit → 429; no messages → 400. `ServerModelOffTest`: without `DVINE_LLM_URL` → 503 `not_configured`. Not yet run against a real llama-server (setup: `docs/SERVER_MODEL.md`) |
+
+`mvn test`: 30 tests pass (2026-11-02, after merging main into the workspace branch).

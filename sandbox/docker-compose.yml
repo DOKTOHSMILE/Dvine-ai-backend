@@ -1,0 +1,28 @@
+# The server and its sandbox network. Code runs join "dvine-egress", which has
+# no route to the internet (internal: true); the only way out is the server's
+# egress proxy on port 3128, which enforces the allow-list and refuses private
+# addresses. Runs without "network": true get --network none.
+services:
+  server:
+    build: ..
+    environment:
+      DVINE_DB_URL: ${DVINE_DB_URL}
+      DVINE_DB_USER: ${DVINE_DB_USER}
+      DVINE_DB_PASSWORD: ${DVINE_DB_PASSWORD}
+      SPRING_PROFILES_ACTIVE: postgres
+      DVINE_EGRESS_BIND: 0.0.0.0
+      DVINE_EGRESS_PORT: "3128"
+      DVINE_WORKSPACE_EGRESS_NETWORK: dvine-egress
+      DVINE_WORKSPACE_EGRESS_PROXY: http://server:3128
+      DVINE_WORKSPACE_ROOT: /srv/dvine/workspaces
+    volumes:
+      # the server starts sandbox containers through the host's engine; give it a
+      # rootless or socket-proxied engine in production, never a shared root socket
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /srv/dvine/workspaces:/srv/dvine/workspaces
+    networks: [default, dvine-egress]
+    ports: ["8088:8088"]
+networks:
+  dvine-egress:
+    name: dvine-egress
+    internal: true

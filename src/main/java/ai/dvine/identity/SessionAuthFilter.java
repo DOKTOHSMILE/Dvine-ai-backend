@@ -21,6 +21,12 @@ public class SessionAuthFilter extends OncePerRequestFilter {
         this.sessions = sessions;
     }
 
+    /** A streamed reply finishes on an async dispatch, which is checked again: it must still carry the session. */
+    @Override
+    protected boolean shouldNotFilterAsyncDispatch() {
+        return false;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
