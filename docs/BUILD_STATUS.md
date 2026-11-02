@@ -24,3 +24,16 @@ Not in this commit: memory, pgvector, social, wallet.
 | S-E episode archive + consolidation | VERIFIED (tests) | `EpisodesTest`: 401 without a session; secrets, unknown kinds and bad tags rejected; replay adds no rows; profile ranks favourites per group; other owners see nothing |
 
 `mvn test`: 18 tests pass (2026-10-26), including `CommandLimitTest`. Verified end to end against the Android `DeskClient`: device register → session → desk room → command → THINK/SAY events.
+
+
+## Interpret and research
+
+| Item | Status | Evidence |
+|---|---|---|
+| Structured reading, questions are not deletes | IN TESTS (plain JVM, not Maven) | `SemanticInterpretationService` keeps negation; a question about deleting is an explanation, not a delete |
+| A date question is the clock | IN TESTS (plain JVM, not Maven) | `SemanticInterpretationService` marks "what is today's date" as `clock`, not as a change |
+| Research notes do not become commands | IN TESTS (plain JVM, not Maven) | `ResearchService` strips `rm -rf`, `sudo`, and `curl|sh`; `executed` stays false; `OfflinePageSource` does not fetch the public web |
+
+`POST /api/v1/interpret` and `POST /api/v1/research` require a session, like the other private routes. No provider key was added.
+
+Not run this build: `mvn test` (Maven is not installed on the machine that prepared the commit).
