@@ -30,6 +30,16 @@ dvine:
     egress-proxy: ${DVINE_WORKSPACE_EGRESS_PROXY:}
     timeout-seconds: ${DVINE_WORKSPACE_TIMEOUT:30}
     runs-per-hour: ${DVINE_WORKSPACE_RUNS_PER_HOUR:30}
+  # DVINE's own online model: a big model (Qwen3 14B, 32B…) under llama.cpp's llama-server, which phones use like an
+  # API model at /api/v1/llm (OpenAI form). Off until DVINE_LLM_URL points at the llama-server (docs/SERVER_MODEL.md).
+  llm:
+    url: ${DVINE_LLM_URL:}
+    model: ${DVINE_LLM_MODEL:qwen3-14b}
+    key: ${DVINE_LLM_KEY:}
+    max-tokens: ${DVINE_LLM_MAX_TOKENS:8192}
+    context: ${DVINE_LLM_CONTEXT:16384}
+    requests-per-minute: ${DVINE_LLM_REQUESTS_PER_MINUTE:30}
+    timeout-seconds: ${DVINE_LLM_TIMEOUT:600}
   # the only way out to the internet for sandbox code and web fetches
   egress:
     bind: ${DVINE_EGRESS_BIND:127.0.0.1}

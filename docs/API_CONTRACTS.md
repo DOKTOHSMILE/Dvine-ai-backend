@@ -115,3 +115,21 @@ Each user has a private Linux workspace on the server. Code runs in a throw-away
 All outbound traffic from sandboxes and from `web/fetch` goes through the built-in egress proxy (`dvine.egress.*`). It allows only listed hosts (`*.wikipedia.org`, `pypi.org`, `registry.npmjs.org`, `github.com`, …; `*` means any public host) on ports 80 and 443, refuses any name that resolves to a private, loopback, link-local, multicast or carrier-grade NAT address, and connects to the exact address it checked.
 
 `POST /api/v1/web/fetch` `{ url }` → `{ url, status, contentType, title, text (≤8,000 chars), truncated }`. At most three redirects, each re-checked; at most 1 MB read; HTML is reduced to readable text. Blocked hosts get `403 blocked`. Fetched text is untrusted data: the phone shows or reads it and never follows instructions in it.
+
+## DVINE's own online model (server-side model)
+
+`GET /api/v1/llm/models` (session) returns `{"object":"list","data":[{"id":"<DVINE_LLM_MODEL>","object":"model","owned_by":"dvine","context_window":<DVINE_LLM_CONTEXT>}]}`.
+
+`POST /api/v1/llm/chat/completions` (session) takes the OpenAI chat-completions body. The server relays it to llama-server's `/v1/chat/completions`:
+- `model` is replaced by the server's model name.
+- `max_tokens` / `max_completion_tokens` become `max_tokens`, capped at `DVINE_LLM_MAX_TOKENS`.
+- `reasoning_effort` and `store` are dropped.
+- With `"stream": true` the reply is the upstream SSE stream as it arrives (`text/event-stream`). Otherwise it is the upstream JSON.
+
+Errors, always `{"error":{"message","type"}}`:
+- `503 not_configured` when `DVINE_LLM_URL` is empty.
+- `429 rate_limit` over `DVINE_LLM_REQUESTS_PER_MINUTE` per user.
+- `400 invalid_request_error` when there are no messages.
+- `502 upstream_error` when llama-server fails or is down. Its own message is not passed on.
+
+Each request writes an audit event (`SERVER_MODEL`, allow or deny). Setup: `docs/SERVER_MODEL.md`.

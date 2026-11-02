@@ -37,3 +37,12 @@ Not in this commit: memory, pgvector, social, wallet.
 `POST /api/v1/interpret` and `POST /api/v1/research` require a session, like the other private routes. No provider key was added.
 
 Not run this build: `mvn test` (Maven is not installed on the machine that prepared the commit).
+
+
+## DVINE's own online model
+
+| Item | Status | Evidence |
+|---|---|---|
+| Phones use a big model on the server like an API model | VERIFIED (tests, against a stand-in llama-server) | `ServerModelTest`: a session is required; `/api/v1/llm/models` names the server's model; a whole reply and a streamed reply (SSE, piece by piece) come back; the request reaches llama-server with the server's model name, `max_tokens` capped, OpenAI-only fields dropped; over the per-minute limit → 429; no messages → 400. `ServerModelOffTest`: without `DVINE_LLM_URL` → 503 `not_configured`. Not yet run against a real llama-server (setup: `docs/SERVER_MODEL.md`) |
+
+`mvn test`: 30 tests pass (2026-11-02, after merging main into the workspace branch).
